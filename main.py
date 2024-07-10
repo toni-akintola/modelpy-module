@@ -15,46 +15,56 @@ class AgentModel:
             "convergence_std_dev": 100,
         }
         self.__graph: nx.Graph = None
-        self.initial_data_generator = None
-        self.timestep_generator = None
+        self.initial_data_function = None
+        self.timestep_function = None
 
     def update_parameters(self, parameters: dict) -> None:
+        '''Takes a dictionary of the form {parameter: value} to update the parameters of the model.'''
         self.__parameters.update(parameters)
 
-    def delete_parameters(self, parameters: list) -> None:
+    def delete_parameters(self, parameters: list = None) -> None:
+        '''Takes a list of parameter keys and deletes each key from the parameters dictionary.
+            If no parameters are passed in, then this method will reset the model's parameters to its defaults.
+            If a default parameter or non-existent parameter is passed in, this method will raise an exception.
+            Returns true if the deletion was successful.'''
+        if not parameters:
+            self.__parameters = {
+                "num_nodes": 3,
+                "graph_type": "complete",
+                "convergence_data_key": None,
+                "convergence_std_dev": 100,
+            }
+            return True
+
         for param in parameters:
-            if param not in self.__parameters or param in {"num_nodes", "graph_type"}:
+            if param not in self.__parameters or param in {"num_nodes", "graph_type", "convergence_data_key", "convergence_std_dev"}:
                 raise KeyError
             self.__parameters.pop(param)
         return True
 
-    def list_parameters(self, parameters: list = None) -> list:
-        if not parameters:
-            return list(self.__parameters.keys())
-
-        result = []
-
-        for param in parameters:
-            if param not in self.__parameters:
-                raise KeyError
-            result.append(param)
-
-        return result
+    def list_parameters(self) -> list:
+        '''Returns a list of all the model's parameter keys. '''
+        return list(self.__parameters.keys())
 
     def get_parameter_value(self, parameter: str) -> None | float | int | str:
+        '''Returns the value of the specified parameter if it exists, otherwise returns nothing.'''
         if self.__parameters.get(parameter):
             return self.__parameters[parameter]
 
     def get_graph(self):
+        '''Returns the networkx graph object representing the model's current graphical state.'''
         return self.__graph
 
-    def set_initial_data_generator(self, initial_data_generator: Callable):
-        self.initial_data_generator = initial_data_generator
+    def set_initial_data_function(self, initial_data_function: Callable):
+        '''Sets the function that the model will use to generate initial data.'''
+        self.initial_data_function = initial_data_function
 
-    def set_timestep_data_generator(self, timestep_generator: Callable):
-        self.timestep_generator = timestep_generator
+    def set_timestep_function(self, timestep_function: Callable):
+        '''Sets the function that the model will use to timestep.'''
+        self.timestep_function = timestep_function
 
     def initialize_graph(self):
+        '''Initializes each node in the graph using the specified initial_data_function.'''
         num_nodes = self.get_parameter_value("num_nodes")
         graph_type = self.get_parameter_value("graph_type")
 
@@ -66,14 +76,17 @@ class AgentModel:
             self.__graph = nx.wheel_graph(num_nodes)
 
         for node in self.__graph.nodes():
-            initial_data = self.initial_data_generator()
+            initial_data = self.initial_data_function()
             self.__graph.nodes[node].update(initial_data)
 
     def timestep(self):
+        '''Runs one timestep of the model, mutating the model by passing it to the user's specified timestep_generator function.'''
         for _node, node_data in self.__graph.nodes(data=True):
-            node_data = self.timestep_generator(node_data)
+            node_data = self.timestep_generator(self, node_data)
 
     def run_to_convergence(self):
+        '''Timesteps the model until time == MAX_TIMESTEPS or the specified convergence_data_key variable
+        has converged to within the specified convergence_std_dev for all nodes. Returns the timestep t of convergence.'''
         time = 0
         data_key, std_dev = self.get_parameter_value(
             "convergence_data_key"
@@ -87,6 +100,8 @@ class AgentModel:
         return time
 
     def is_converged(self, data_key: str, std_dev: float):
+        '''Checks whether the specified data_key variable has converged to within the specified std_dev for all nodes.
+            Returns true if the model has converged, and false if not.'''
         nodes = np.array(
             [node_data[data_key] for _, node_data in self.__graph.nodes(data=True)]
         )
@@ -98,6 +113,7 @@ def genInitialData():
     return {"id": random.randint(1, 100)}
 
 
-def genTimestepData(nodeData: dict):
+def genTimestepData(model: AgentModel, nodeData: dict):
     nodeData["id"] = nodeData["id"] + 1
     return nodeData
+
