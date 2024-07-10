@@ -1,11 +1,19 @@
 import random
 import networkx as nx
+import numpy as np
 from typing import Generator, Callable
+
+MAX_TIMESTEPS = 100000
 
 
 class AgentModel:
     def __init__(self):
-        self.__parameters = {"num_nodes": 3, "graph_type": "complete"}
+        self.__parameters = {
+            "num_nodes": 3,
+            "graph_type": "complete",
+            "convergence_data_key": None,
+            "convergence_std_dev": 100,
+        }
         self.__graph: nx.Graph = None
         self.initial_data_generator = None
         self.timestep_generator = None
@@ -36,7 +44,6 @@ class AgentModel:
     def get_parameter_value(self, parameter: str) -> None | float | int | str:
         if self.__parameters.get(parameter):
             return self.__parameters[parameter]
-        raise KeyError
 
     def get_graph(self):
         return self.__graph
@@ -66,8 +73,25 @@ class AgentModel:
         for _node, node_data in self.__graph.nodes(data=True):
             node_data = self.timestep_generator(node_data)
 
+    def run_to_convergence(self):
+        time = 0
+        data_key, std_dev = self.get_parameter_value(
+            "convergence_data_key"
+        ), self.get_parameter_value("convergence_std_dev")
 
-test = AgentModel()
+        if not data_key:
+            raise Exception("No convergence data key specified")
+        while time < MAX_TIMESTEPS and not self.is_converged(data_key, std_dev):
+            self.timestep()
+            time += 1
+        return time
+
+    def is_converged(self, data_key: str, std_dev: float):
+        nodes = np.array(
+            [node_data[data_key] for _, node_data in self.__graph.nodes(data=True)]
+        )
+        print(nodes.std())
+        return nodes.std() <= std_dev
 
 
 def genInitialData():
@@ -77,15 +101,3 @@ def genInitialData():
 def genTimestepData(nodeData: dict):
     nodeData["id"] = nodeData["id"] + 1
     return nodeData
-
-
-test.set_initial_data_generator(genInitialData)
-test.set_timestep_data_generator(genTimestepData)
-
-test.initialize_graph()
-
-graph = test.get_graph()
-
-print(graph.nodes(data=True))
-test.timestep()
-print(graph.nodes(data=True))
