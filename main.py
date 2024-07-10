@@ -103,9 +103,13 @@ class AgentModel:
 
         if not data_key:
             raise Exception("No convergence data key specified")
+        print("Before convergence:", self.__graph.nodes(data=True))
         while time < MAX_TIMESTEPS and not self.is_converged(data_key, std_dev):
             self.timestep()
             time += 1
+            print(
+                f"After convergence at time t == {time}:", self.__graph.nodes(data=True)
+            )
         return time
 
     def is_converged(self, data_key: str, std_dev: float):

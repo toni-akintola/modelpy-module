@@ -1,7 +1,7 @@
 import unittest
 import random
 import numpy as np
-from main import AgentModel
+from main import AgentModel, MAX_TIMESTEPS
 
 
 def genInitialZollmanData():
@@ -110,9 +110,8 @@ class testAgentModelPackage(unittest.TestCase):
         agent.set_timestep_function(timestepFunction)
         agent["convergence_data_key"] = "a_expectation"
         agent["convergence_std_dev"] = 0.05
-        print("Before convergence:", agent.get_graph().nodes(data=True))
         time = agent.run_to_convergence()
-        print(f"After convergence at time {time}:", agent.get_graph().nodes(data=True))
+        self.assertTrue(time <= MAX_TIMESTEPS)
 
 
 if __name__ == "__main__":
