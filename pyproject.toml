@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling", "networkx", "numpy"]
+build-backend = "hatchling.build"
+
+[project]
+name = "Modelpy"
+version = "0.0.1"
+authors = [
+  { name="Oluwatoni Akintola", email="oakintol@nd.edu" },
+]
+description = "Test run for the release of Modelpy's Python module."
+readme = "README.md"
+requires-python = ">=3.12.4"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/toni-akintola/modelpy-module"

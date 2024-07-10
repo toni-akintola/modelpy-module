@@ -1,7 +1,8 @@
 import unittest
 import random
 import numpy as np
-from main import AgentModel, MAX_TIMESTEPS
+
+from modelpy.main import AgentModel, MAX_TIMESTEPS
 
 
 def genInitialZollmanData():
